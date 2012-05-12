@@ -137,7 +137,7 @@ class oEmbedEndpoint_Response {
 		$document = new DOMDocument("1.0", "utf-8");
 		$document->appendChild($oembed = $document->createElement("oembed"));
 		
-		foreach($this->parameters as $name => $value) $document->appendChild($document->createElement($name, $value));
+		foreach($this->parameters as $name => $value) $oembed->appendChild($document->createElement($name, $value));
 		
 		return $document->saveXML();
 	}
@@ -213,7 +213,7 @@ class oEmbedEndpoint_Video extends oEmbedEndpoint_Response {
 		$this->parameters = array_merge(
 			$this->parameters,
 			array(
-				"html" => $html,
+				"html" => htmlentities($html),
 				"width" => $width,
 				"height" => $height
 			)
