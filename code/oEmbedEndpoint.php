@@ -5,7 +5,7 @@ class oEmbedEndpoint_Controller extends Controller {
 	
 		$request = $this->getRequest();
 		
-		$url = url_decode($request->getVar('url'));
+		$url = strtolower(urldecode($request->getVar('oembedurl')));
 		$maxwidth = $request->getVar('maxwidth');
 		$maxheight = $request->getVar('maxheight');
 		$format = $request->getVar('format');
@@ -41,18 +41,22 @@ class oEmbedEndpoint_Controller extends Controller {
 						break;
 				}
 				continue; // Something went wrong, move on to the next match
+			} elseif(!is_a($response, 'oEmbedEndpoint_Response')) {
+				$http->setStatusCode(
+					oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
+					"Not Found"
+				);
+				return;
 			}
 			
 			switch(strtolower($format)) {
 				default:
 				case 'json':
 					$http->addHeader("Content-Type", "application/json");
-					$http->setBody($response->getJSON());
-					break;
+					return $response->toJSON();
 				case 'xml':
 					$http->addHeader("Content-Type", "text/xml");
-					$http->setBody($response->getXML());
-					break;
+					return $response->toXML();
 			}
 			
 			break; // Only match once
@@ -65,7 +69,7 @@ abstract class oEmbedEndpoint {
 	
 	public static function match_scheme($url) {
 		$urlInfo = parse_url($url);
-		$schemeInfo = parse_url(self::$scheme);
+		$schemeInfo = parse_url(static::$scheme);
 		foreach($schemeInfo as $k=>$v) {
 			if(!array_key_exists($k, $urlInfo)) {
 				return false;
@@ -110,7 +114,7 @@ class oEmbedEndpoint_Response {
 		$thumbnail_width = null,
 		$thumbnail_height = null
 	) {
-		$parameters = array(
+		$this->parameters = array(
 			"type" => $type,
 			"version" => self::OEMBED_VERSION,
 			"title" => $title,
@@ -124,7 +128,9 @@ class oEmbedEndpoint_Response {
 	}
 	
 	public function toJSON() {
-		return json_encode($this->parameters);
+		$parameters = $this->parameters;
+		foreach($parameters as $key => $parameter) if(is_null($parameter)) unset($parameters[$key]);
+		return json_encode($parameters);
 	}
 	
 	public function toXML() {
