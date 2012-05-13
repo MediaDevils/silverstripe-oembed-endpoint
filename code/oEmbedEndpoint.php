@@ -16,7 +16,7 @@ class oEmbedEndpoint_Controller extends Controller {
 			if(!is_string($provider::$scheme) || strlen($provider::$scheme) <= 0) continue;
 			if(!$provider::match_scheme($url)) continue;
 			
-			$response = $provider::get_response($url, $maxwidth, $maxheight, $format);
+			$response = $provider::get_response($url, $request->getVars());
 			$http = $this->getResponse();
 			
 			if(is_int($response)) {
@@ -90,7 +90,7 @@ abstract class oEmbedEndpoint {
 		return true;
 	}
 	
-	abstract public static function get_response($url, $maxwidth = null, $maxheight = null, $format = null);
+	abstract public static function get_response($url, Array $options = array());
 }
 
 class oEmbedEndpoint_Response {
@@ -137,7 +137,10 @@ class oEmbedEndpoint_Response {
 		$document = new DOMDocument("1.0", "utf-8");
 		$document->appendChild($oembed = $document->createElement("oembed"));
 		
-		foreach($this->parameters as $name => $value) $oembed->appendChild($document->createElement($name, $value));
+		foreach($this->parameters as $name => $value) {
+			if($name == "html") $value = htmlentities($value);
+			$oembed->appendChild($document->createElement($name, $value));
+		}
 		
 		return $document->saveXML();
 	}
@@ -213,7 +216,7 @@ class oEmbedEndpoint_Video extends oEmbedEndpoint_Response {
 		$this->parameters = array_merge(
 			$this->parameters,
 			array(
-				"html" => htmlentities($html),
+				"html" => $html,
 				"width" => $width,
 				"height" => $height
 			)
