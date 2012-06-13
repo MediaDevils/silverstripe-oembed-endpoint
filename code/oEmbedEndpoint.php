@@ -1,14 +1,66 @@
 <?php
 class oEmbedEndpoint_Controller extends Controller {
-	public function index() {
-		$providers = ClassInfo::subclassesFor('oEmbedEndpoint');
-	
-		$request = $this->getRequest();
-		
+	public function index($request) {
 		$url = strtolower(urldecode($request->getVar('oembedurl')));
 		$maxwidth = $request->getVar('maxwidth');
 		$maxheight = $request->getVar('maxheight');
 		$format = $request->getVar('format');
+		
+		if(!$provider = $this->getEndpointForURL($url)) {
+			$this->response->setStatusCode(
+				oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED,
+				"Not Implemented"
+			);
+			return Array();
+		}
+		
+
+		$response = $provider::get_response($url, $request->getVars());
+		$http = $this->getResponse();
+		
+		if(is_int($response)) {
+			switch($response) {
+				case oEmbedEndpoint_Response::RESPONSE_NOT_FOUND:
+					$http->setStatusCode(
+						oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
+						"Not Found"
+					);
+					break;
+				case oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED:
+					$http->setStatusCode(
+						oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED,
+						"Not Implemented"
+					);
+					break;
+				case oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED:
+					$http->setStatusCode(
+						oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED,
+						"Unauthorized"
+					);
+					break;
+			}
+			return Array();
+		} elseif(!is_a($response, 'oEmbedEndpoint_Response')) {
+			$http->setStatusCode(
+				oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
+				"Not Found"
+			);
+			return;
+		}
+		
+		switch(strtolower($format)) {
+			default:
+			case 'json':
+				$http->addHeader("Content-Type", "application/json");
+				return $response->toJSON();
+			case 'xml':
+				$http->addHeader("Content-Type", "text/xml");
+				return $response->toXML();
+		}
+	}
+	
+	public function getEndpointForURL($url) {
+		$providers = ClassInfo::subclassesFor('oEmbedEndpoint');
 		
 		foreach($providers as $provider) {
 			$providerReflection = new ReflectionClass($provider);
@@ -16,51 +68,22 @@ class oEmbedEndpoint_Controller extends Controller {
 			if(!is_string($provider::$scheme) || strlen($provider::$scheme) <= 0) continue;
 			if(!$provider::match_scheme($url)) continue;
 			
-			$response = $provider::get_response($url, $request->getVars());
-			$http = $this->getResponse();
-			
-			if(is_int($response)) {
-				switch($response) {
-					case oEmbedEndpoint_Response::RESPONSE_NOT_FOUND:
-						$http->setStatusCode(
-							oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
-							"Not Found"
-						);
-						break;
-					case oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED:
-						$http->setStatusCode(
-							oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED,
-							"Not Implemented"
-						);
-						break;
-					case oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED:
-						$http->setStatusCode(
-							oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED,
-							"Unauthorized"
-						);
-						break;
-				}
-				continue; // Something went wrong, move on to the next match
-			} elseif(!is_a($response, 'oEmbedEndpoint_Response')) {
-				$http->setStatusCode(
-					oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
-					"Not Found"
-				);
-				return;
-			}
-			
-			switch(strtolower($format)) {
-				default:
-				case 'json':
-					$http->addHeader("Content-Type", "application/json");
-					return $response->toJSON();
-				case 'xml':
-					$http->addHeader("Content-Type", "text/xml");
-					return $response->toXML();
-			}
-			
-			break; // Only match once
+			return $provider;
 		}
+		return false;
+	}
+	
+	public static function EndpointForURL($url) {
+		return singleton(__CLASS__)->getEndpointForURL($url);
+	}
+	
+	public static function LocalResponse($url) {
+		if($endpoint = self::EndpointForURL($url)) {
+			if($response = $endpoint::get_response($url)) {
+				$embed = new oEmbed_Result();
+				return $embed->loadData($response->toJSON(), 'json');
+			} else return false;
+		} else return false;
 	}
 }
 
