@@ -7,11 +7,7 @@ class oEmbedEndpoint_Controller extends Controller {
 		$format = $request->getVar('format');
 		
 		if(!$provider = $this->getEndpointForURL($url)) {
-			$this->response->setStatusCode(
-				oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED,
-				"Not Implemented"
-			);
-			return Array();
+			return $this->httpError(oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED, "Not Implemented");
 		}
 		
 
@@ -21,31 +17,15 @@ class oEmbedEndpoint_Controller extends Controller {
 		if(is_int($response)) {
 			switch($response) {
 				case oEmbedEndpoint_Response::RESPONSE_NOT_FOUND:
-					$http->setStatusCode(
-						oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
-						"Not Found"
-					);
-					break;
+					return $this->httpError(oEmbedEndpoint_Response::RESPONSE_NOT_FOUND, "Not Found");
 				case oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED:
-					$http->setStatusCode(
-						oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED,
-						"Not Implemented"
-					);
-					break;
+					return $this->httpError(oEmbedEndpoint_Response::RESPONSE_NOT_IMPLEMENTED, "Not Implemented");
 				case oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED:
-					$http->setStatusCode(
-						oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED,
-						"Unauthorized"
-					);
-					break;
+					return $this->httpError(oEmbedEndpoint_Response::RESPONSE_UNAUTHORIZED, "Unauthorized");
 			}
 			return Array();
 		} elseif(!is_a($response, 'oEmbedEndpoint_Response')) {
-			$http->setStatusCode(
-				oEmbedEndpoint_Response::RESPONSE_NOT_FOUND,
-				"Not Found"
-			);
-			return;
+			return $this->httpError(oEmbedEndpoint_Response::RESPONSE_NOT_FOUND, "Not Found");
 		}
 		
 		switch(strtolower($format)) {
@@ -79,9 +59,11 @@ class oEmbedEndpoint_Controller extends Controller {
 	
 	public static function LocalResponse($url) {
 		if($endpoint = self::EndpointForURL($url)) {
-			if($response = $endpoint::get_response($url)) {
+			$response = $endpoint::get_response($url);
+			if($response && is_a($response, 'oEmbed_Result_Type')) {
 				$embed = new oEmbed_Result();
-				return $embed->loadData($response->toJSON(), 'json');
+				if($embed) return $embed->loadData($response->toJSON(), 'json');
+				else return false;
 			} else return false;
 		} else return false;
 	}
