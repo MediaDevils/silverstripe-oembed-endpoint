@@ -132,6 +132,10 @@ class oEmbedEndpoint_Response {
 		);
 	}
 	
+	public function addCustomParameter($key, $value) {
+		$this->parameters[$key] = $value;
+	}
+	
 	public function toJSON() {
 		$parameters = $this->parameters;
 		foreach($parameters as $key => $parameter) if(is_null($parameter)) unset($parameters[$key]);
