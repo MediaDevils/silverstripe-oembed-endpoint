@@ -57,6 +57,16 @@ class oEmbedEndpoint_Controller extends Controller {
 		return singleton(__CLASS__)->getEndpointForURL($url);
 	}
 	
+	public static function addDiscovery($url, $title = null, $type = 'json') {
+		$url = urlencode($url);
+		$endpointURL = Director::absoluteBaseURL()."oembed?url={$url}&format={$type}";
+		if(is_string($title)) $title = "title=\"".htmlentities($title)."\"";
+		
+		$html = "<link rel=\"alternate\" type=\"application/{$type}+oembed\" href=\"{$endpointURL}\" {$title} />";
+		
+		Requirements::insertHeadTags($html, md5($url));
+	}
+	
 	public static function LocalResponse($url) {
 		if($endpoint = self::EndpointForURL($url)) {
 			$response = $endpoint::get_response($url);
