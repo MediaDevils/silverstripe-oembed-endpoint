@@ -105,7 +105,9 @@ abstract class oEmbedEndpoint {
 		return true;
 	}
 	
-	abstract public static function get_response($url, Array $options = array());
+	public static function get_response($url, Array $options = array()) {
+		
+	}
 }
 
 class oEmbedEndpoint_Response {

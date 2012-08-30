@@ -12,6 +12,6 @@ if(isset($_GET['url']) && strpos($_SERVER['QUERY_STRING'], '&url=') !== false) {
 	}
 }
 
-Director::addRules(10, array(
+Director::addRules(100, array(
 	'oembed' => 'oEmbedEndpoint_Controller'
 ));
